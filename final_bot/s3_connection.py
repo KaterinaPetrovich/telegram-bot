@@ -28,12 +28,18 @@ def upload_private_gif(user_id, gif):
 
 def download_all_gifs():
     """Downloads all gifs from the s3 bucket"""
-    gif_list = client.list_objects_v2(Bucket=BUCKET, Prefix="GIF")["Contents"]
+    try:
+        gif_list = client.list_objects_v2(
+            Bucket=BUCKET, Prefix="GIF"
+        )["Contents"]
+    except KeyError:
+        gif_list = []
     gifs = []
-    for gif in gif_list:
-        file_name = os.path.basename(gif["Key"])
-        gifs.append(file_name)
-        client.download_file(BUCKET, gif["Key"], file_name)
+    if gif_list:
+        for gif in gif_list:
+            file_name = os.path.basename(gif["Key"])
+            gifs.append(file_name)
+            client.download_file(BUCKET, gif["Key"], file_name)
     return gifs
 
 
