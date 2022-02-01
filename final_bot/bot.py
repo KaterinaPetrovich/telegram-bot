@@ -6,7 +6,7 @@ from aiogram.dispatcher import Dispatcher, FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
-from config import TG_TOKEN, admins
+from config import TG_TOKEN
 from helper import remove_dir, remove_gif
 from keyboards import font_size_keyboard, fonts_keyboard
 from picture_handler import add_text_to_picture, create_gif
