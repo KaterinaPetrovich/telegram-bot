@@ -25,7 +25,7 @@ def add_text_to_picture(text, pic_path, font_name, fontsize):
 
 
 def add_watermark(pic_path):
-    add_text_to_picture("PictureBot", pic_path, "Freestyle", 30)
+    add_text_to_picture("PictureBot", pic_path, "Vivaldi", 30)
 
 
 def create_gif(path_to_pictures):
