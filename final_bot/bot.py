@@ -61,13 +61,14 @@ async def start_mode(message: types.Message):
 
 
 @dp.message_handler(content_types=["photo"], state=Gif.gif)
-async def load_photo_for_gif(message: types.Message):
+async def load_photo_for_gif(message: types.Message, state: FSMContext):
     """
     Gets photo for gif and saves it
     """
     file_id = message.photo[-1].file_id
     user_id = message.from_user.id
-
+    async with state.proxy() as data:
+        data["photo"] = file_id
     await message.photo[-1].download(
         destination_file=f"{user_id}" f"gif/{file_id}.jpg"
     )
@@ -79,12 +80,25 @@ async def create_public_gif(message: types.Message, state: FSMContext):
     Creates public gif and sends it to user. Removes dir with photos
     """
     user_id = message.from_user.id
-    gif_path = create_gif(f"{user_id}gif/")
-    upload_gif(user_id, gif_path)
-    with open(gif_path, "rb") as gif:
-        await bot.send_animation(message.from_user.id, gif)
+    async with state.proxy() as data:
+        try:
+            data["photo"]
+            gif_path = create_gif(f"{user_id}gif/")
+            upload_gif(user_id, gif_path)
+            with open(gif_path, "rb") as gif:
+                await bot.send_animation(message.from_user.id, gif)
+            await state.finish()
+            remove_dir(f"{user_id}gif/")
+        except KeyError:
+            await message.answer("Send photos please")
+
+
+@dp.message_handler(commands=["cancel"], state='*')
+async def cancel_command(message: types.Message, state: FSMContext):
+    """Cancel command"""
     await state.finish()
-    remove_dir(f"{user_id}gif/")
+    await message.answer("Please choose new command")
+    remove_gif()
 
 
 @dp.message_handler(commands=["privategif"], state=Gif.gif)
@@ -93,12 +107,17 @@ async def create_private_gif(message: types.Message, state: FSMContext):
     Makes gif private and sends it to user. Removes dir with photos
     """
     user_id = message.from_user.id
-    gif_path = create_gif(f"{user_id}gif/")
-    upload_private_gif(user_id, gif_path)
-    with open(gif_path, "rb") as gif:
-        await bot.send_animation(message.from_user.id, gif)
-    await state.finish()
-    remove_dir(f"{user_id}gif/")
+    async with state.proxy() as data:
+        try:
+            data["photo"]
+            gif_path = create_gif(f"{user_id}gif/")
+            upload_private_gif(user_id, gif_path)
+            with open(gif_path, "rb") as gif:
+                await bot.send_animation(message.from_user.id, gif)
+            await state.finish()
+            remove_dir(f"{user_id}gif/")
+        except KeyError:
+            await message.answer("Send photos please")
 
 
 @dp.message_handler(commands=["getallgifs"])
@@ -109,14 +128,13 @@ async def get_gif(message: types.Message):
     there is no gifs
     """
     gifs = download_all_gifs()
-    print(gifs)
     if gifs:
         for gif_name in gifs:
             with open(gif_name, "rb") as gif:
                 await bot.send_animation(message.chat.id, gif)
         remove_gif()
     else:
-        await message.answer("There are no gifs. \n" 
+        await message.answer("There are no gifs. \n"
                              "Use /creategif to create one")
 
 
@@ -130,7 +148,6 @@ async def get_gif(message: types.Message):
     gifs = download_users_gifs(message.from_user.id)
     if gifs:
         for gif_name in gifs:
-            print(gif_name)
             with open(gif_name, "rb") as gif:
                 await bot.send_animation(message.chat.id, gif)
         remove_gif()
@@ -144,7 +161,7 @@ async def get_gif(message: types.Message):
 async def load_photo(message: types.Message, state: FSMContext):
     """Gets photo and saves"""
     file_id = message.photo[-1].file_id
-    await message.photo[-1].download(destination_file="photos/" 
+    await message.photo[-1].download(destination_file="photos/"
                                                       f"{file_id}.jpg")
     async with state.proxy() as data:
         data["photo"] = file_id
